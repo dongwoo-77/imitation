@@ -11,7 +11,7 @@ import math
 from PIL import Image
 import pandas as pd
 
-LOOPS = 50
+LOOPS = 20
 SCENE_FILE = "reach_b.ttt"
 pr = PyRep()
 pr.launch(SCENE_FILE, headless=False)
@@ -33,7 +33,8 @@ starting_joint_positions = agent.get_joint_positions()
 
 position1 = [np.array([1, 1, 1])]
 position = []
-
+move = [np.array([1, 1, 1])]
+k = 0
 for i in range(LOOPS):
 
     # Reset the arm at the start of each 'episode'
@@ -59,19 +60,24 @@ for i in range(LOOPS):
         pr.step()
         current_positions = gripper.get_position(relative_to=workspace)
         # print(position[-1])
-        # dis = pos - current_positions
+        moving = current_positions - position1[-1]
+        # print(move)
         # dis = math.sqrt(math.pow(dis[0], 2) + math.pow(dis[1], 2) + math.pow(dis[1], 2))
         if position1[-1][2] > current_positions[2]:
-            j = j + 1
             img = camera.capture_rgb()
             img = Image.fromarray(np.uint8(img * 255))
             position.append(current_positions)
-            img.save('/home/nam/workspace/imitation/data/set_reach_b/img_{}_{}.png'.format(i, j))
+            move.append(moving)
+            img.save('/home/nam/workspace/imitation/test_data/set_reach_b/img_{}_{}_{}.png'.format(i, j, k))
+            j = j + 1
+            k = k + 1
         position1.append(current_positions)
     
     print('Reached target %d!' % i)
 dataframe = pd.DataFrame(position)
-dataframe.to_csv('/home/nam/workspace/imitation/data/position/set_reach_b.csv', header=False, index=False)
+dataframe.to_csv('/home/nam/workspace/imitation/test_data/position/set_reach_b.csv', header=False, index=False)
+dataframe1 = pd.DataFrame(move)
+dataframe.to_csv('/home/nam/workspace/imitation/test_data/move/set_reach_b.csv', header=False, index=False)
 
 
 pr.stop()

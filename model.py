@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
 
 import torchvision
 from torchvision import transforms
@@ -16,9 +18,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import csv
 
-class Model(nn.Module):
+class mymodel(nn.Module):
     def __init__(self):
-        super(Model, self).__init__()
+        super(mymodel, self).__init__()
         self.conv_layers = nn.Sequential(
             # input is batch_size x 3 x 66 x 200
             nn.Conv2d(3, 24, 5, stride=2, bias=False),
@@ -99,6 +101,32 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+class mydataset(Dataset): 
+    def __init__(self, path1, path2):
+        self.path1 = path1
+        self.path2 = path2
+        self.img = list(sorted(os.listdir(os.path.join(path1, "set_reach_b"))))
+        self.data = pd.read_csv(path2, header=None)
+        print(len(self.img))
+
+    def __len__(self): 
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.path1, "set_reach_b", self.img[idx])
+        img = Image.open(img_path).convert("RGB")
+        print(img_path.split('_')[-1].split('.')[0])
+        # print(self.data.loc[int(img_path.split('_')[-1].split('.')[0])][0], self.data.loc[int(img_path.split('_')[-1].split('.')[0])][1], self.data.loc[int(img_path.split('_')[-1].split('.')[0])][2])
+        # exit()
+        label = [self.data.loc[int(img_path.split('_')[-1].split('.')[0])][0], self.data.loc[int(img_path.split('_')[-1].split('.')[0])][1], self.data.loc[int(img_path.split('_')[-1].split('.')[0])][2]]
+        label_m = []
+        for i in range(len(self.data)):
+            label.append([self.data.loc[i][0], self.data.loc[i][1], self.data.loc[i][2]])
+            if i > 0:
+                label_m.append([self.data.loc[i-1][0] - self.data.loc[i][0], self.data.loc[i-1][1] - self.data.loc[i][1], self.data.loc[i-1][2] - self.data.loc[i][2]])
+
+        return img, label
+
 
 def main():
     device = device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -108,30 +136,13 @@ def main():
     learning_rate = 0.001
     batch_size = 8
 
-
-
-
-    data = pd.read_csv("/home/nam/workspace/imitation/data/position/set_reach_b.csv", header=None)
-    label = []
-    label_m = []
-    for i in range(len(data)):
-        label.append([data.loc[i][0], data.loc[i][1], data.loc[i][2]])
-        if i > 0:
-            label_m.append([data.loc[i-1][0] - data.loc[i][0], data.loc[i-1][1] - data.loc[i][1], data.loc[i-1][2] - data.loc[i][2]])
-
-    train_label = label
-    train_label_m = label_m
-
-    for i in range(50):
-        while j:
-        img = Image.open('/home/nam/workspace/imitation/data/set_reach_b/img_{}_{}.png'.format(i, j))
-
-    
+    train_dataset = mydataset('/home/nam/workspace/imitation/data', '/home/nam/workspace/imitation/data/position/set_reach_b.csv')
+    test_dataset = mydataset('/home/nam/workspace/imitation/test_data', '/home/nam/workspace/imitation/test_data/position/set_reach_b.csv')
 
     # split the dataset in train and test set
-    indices = torch.randperm(len(dataset)).tolist()
-    train_dataset = torch.utils.data.Subset(dataset, indices[:-50])
-    test_dataset = torch.utils.data.Subset(dataset_test, indices[-50:])
+    # indices = torch.randperm(len(dataset)).tolist()
+    # train_dataset = torch.utils.data.Subset(dataset, indices[:-50])
+    # test_dataset = torch.utils.data.Subset(dataset_test, indices[-50:])
 
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                             batch_size=batch_size, 
@@ -141,7 +152,7 @@ def main():
                                             batch_size=batch_size, 
                                             shuffle=False)
 
-    model = models.resnext50_32x4d()
+    model = mymodel()
 
     model.to(device)
 
